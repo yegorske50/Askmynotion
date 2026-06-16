@@ -1,69 +1,149 @@
-# <Your Project>
+# AskMyNotion
 
-<!-- TODO: one-paragraph description of what this project is and does. -->
+AskMyNotion is a local, single-user RAG tool that ingests Notion pages and linked Instagram reels, transcribes them, and provides source-grounded answers with exact citations and video timestamps. 
+
+This repository is built and maintained by ephemeral cloud agents. Treat this file as your operational manual. For the deep product requirements, data models, and edge cases, consult `specification.md`.
+
+## The "Laptop Profile" Constraint (Non-Negotiable)
+This app must run on an 8GB MacBook Air with no GPU and a $0 budget. 
+* **DO NOT** introduce Postgres, Redis, Celery, or heavyweight local LLMs. 
+* **DO NOT** introduce a separate Node.js server at runtime. 
+* Everything runs via one Python process (FastAPI), utilizing SQLite (`sqlite-vec` + `FTS5`), and serving a pre-built static React frontend. Keep peak RAM under ~2GB.
 
 ## Tech Stack
 
-<!-- TODO: runtime, language, framework, storage, etc. -->
+* **Backend:** Python 3.11, FastAPI, Uvicorn (serves API and static frontend)
+* **Frontend:** Vite, React, TypeScript, Tailwind (prebuilt to `web/dist/` and committed)
+* **Database & Search:** SQLite + `sqlite-vec` (vector) + `FTS5` (keyword)
+* **AI Providers:** MiniMax (Answers), Groq/faster-whisper (Transcription), intfloat/multilingual-e5-small (Embeddings)
 
 ## Build & Test Commands
 
+We use `make` for primary Python lifecycle commands, wrapped by our quality gates.
+
 ```bash
-# TODO: install
-# TODO: run tests
-# TODO: the canonical quality gate — MUST match
-#       .warren/config.yaml `qualityGate` AND .github/workflows/ci.yml
+make install      # Installs Python dependencies and ffmpeg requirements
+make dev          # Starts FastAPI serving the prebuilt UI and background worker
+make test         # Runs pytest (unit + RAG pipeline with mocked providers)
+make ingest       # Triggers the ingestion pipeline locally
 ```
 
-## Quality Gates
+Any ambiguous decisions made during development must be documented in `PROMPT_NOTES.md` rather than stalling the run.
 
-Run the quality gate before committing — it is surfaced to you as
-`$WARREN_QUALITY_GATE`. You are NOT done until it exits zero. Fix failures
-(including lint warnings, which CI treats as errors) until it is green. Do
-not declare the task complete, hand off, or end the session with a red
-gate. If the gate is genuinely unfixable in this run, say so explicitly
-and leave the work open rather than claiming success.
+---
 
-## Conventions
+# Acceptance Harness
 
-<!-- TODO: naming, file layout, error handling, anything an agent should
-     not have to guess. The more specific, the better the agent output. -->
-
-## Constitution
-
-This project is governed by [docs/CONSTITUTION.md](docs/CONSTITUTION.md).
-Merges are truthful, ratchets only tighten, tests verify behavior. The
-audit population (`agents/`, scheduled in `.warren/triggers.yaml`)
-measures merged work against it.
-
-## Operating contract (for agents)
-
-- Edit files in place. Run the quality gate before committing.
-- Commit your changes (`git commit`) — staging alone is NOT enough. A run
-  that ends with staged-but-uncommitted changes is a failure.
-- Do NOT run `git push` — warren reaps the branch and pushes for you.
-- Use `sd` for the issue queue and `ml` for memory (see the onboarding
-  blocks below).
+`scripts/acceptance/` runs scenario-based end-to-end checks against a real
+warren+burrow stack. Each scenario lives in `scripts/acceptance/scenarios/`
+and uses the helpers in `scripts/acceptance/lib/`. New scenarios should be
+deterministic, idempotent, and clean up after themselves — they are
+expected to run against a live (possibly long-lived) deployment.
 
 ## Session Completion Protocol
 
 When ending a work session, complete ALL steps:
 
-1. File follow-ups for remaining work: `sd create --title "..."`
-2. Run the quality gate (if code changed).
+1. File issues for remaining work: `sd create --title "..."`
+2. Run quality gates (if code changed): `bun run check:all`
 3. Close finished issues: `sd close <id>`
 4. Record insights worth preserving: `ml learn` then `ml record ...`
-5. Sync: `sd sync && ml sync`  (warren handles the push)
-
-<!-- The two blocks below are INSERTED AUTOMATICALLY by `sd init` and
-     `ml init` (or onboard). Do not hand-write them — run the tools so the
-     version markers stay accurate. They tell every agent run to prime the
-     queue and memory at start and sync at end. -->
+5. Push: `sd sync && ml sync && git push`
+6. Verify: `git status` shows "up to date with origin"
 
 <!-- seeds:start -->
-<!-- (run `sd init` / `sd onboard` in this repo to populate) -->
+## Issue Tracking (Seeds)
+<!-- seeds-onboard:v0.4.0 -->
+<!-- seeds-onboard-schema:4 -->
+
+This project uses [Seeds](https://github.com/jayminwest/seeds) v0.4.0 for git-native issue tracking.
+
+**At the start of every session**, run:
+```
+sd prime
+```
+
+This injects session context: rules, command reference, and workflows. Pass `--format json|compact|markdown|plain|ids` on any command for agent-friendly output.
+
+**Quick reference:**
+- `sd ready` — Find unblocked work
+- `sd search <query>` — Full-text search across titles + descriptions
+- `sd create --title "..." --type task --priority 2` — Create issue
+- `sd update <id> --status in_progress` — Claim work
+- `sd close <id>` — Complete work
+- `sd dep add <id> <depends-on>` — Add dependency between issues
+- `sd sync` — Sync with git (run before pushing)
+
+### Planning
+Use `sd plan` when work is large or ambiguous enough that an LLM benefits from structured decomposition. Submit spawns one child seed per step; `step.blocks` uses forward semantics (step i with `blocks: [j]` means step i blocks step j, and step j gets step i's id in its `blockedBy`).
+
+- `sd plan templates` — List built-ins (`feature`, `bug`, `refactor`) plus custom templates
+- `sd plan prompt <seed-id>` — Emit a structured prompt the LLM fills in
+- `sd plan submit <seed-id> --plan <file>` — Validate + spawn child seeds
+- `sd plan show <pl-id>` — View sections, children, sub-plans
+- `sd plan outcome <pl-id> --result success|partial|failure` — Record outcome (storage-only)
+- `sd plan review <pl-id> --by <name>` — Record reviewer (informational)
+
+### Before You Finish
+1. Close completed issues: `sd close <id>`
+2. File issues for remaining work: `sd create --title "..."`
+3. Sync and push: `sd sync && git push`
 <!-- seeds:end -->
 
 <!-- mulch:start -->
-<!-- (run `ml init` / `ml onboard` in this repo to populate) -->
+## Project Expertise (Mulch)
+<!-- mulch-onboard:v0.8.0 -->
+
+This project uses [Mulch](https://github.com/jayminwest/mulch) v0.8.0 for structured expertise management.
+
+**At the start of every session**, run:
+```bash
+ml prime
+```
+
+Injects project-specific conventions, patterns, decisions, failures, references, and guides into
+your context. Run `ml prime --files src/foo.ts` before editing a file to load only records
+relevant to that path (per-file framing, classification age, and confirmation scores included).
+
+For monolith projects where dumping every record wastes context, set
+`prime.default_mode: manifest` in `.mulch/mulch.config.yaml` (or pass `--manifest`) to emit a
+quick reference + domain index. Agents then scope-load with `ml prime <domain>` or
+`ml prime --files <path>`.
+
+**Before completing your task**, record insights worth preserving — conventions discovered,
+patterns applied, failures encountered, or decisions made:
+```bash
+ml record <domain> --type <convention|pattern|failure|decision|reference|guide> --description "..."
+```
+
+Evidence auto-populates from git (current commit + changed files). Link explicitly with
+`--evidence-seeds <id>` / `--evidence-gh <id>` / `--evidence-linear <id>` / `--evidence-bead <id>`,
+`--evidence-commit <sha>`, or `--relates-to <mx-id>`. Upserts of named records merge outcomes
+instead of replacing them; validation failures print a copy-paste retry hint with missing fields
+pre-filled.
+
+Run `ml status` for domain health, `ml doctor` to check record integrity (add `--fix` to strip
+broken file anchors), `ml --help` for the full command list. Write commands use file locking and
+atomic writes, so multiple agents can record concurrently. Expertise survives `git worktree`
+cleanup — `.mulch/` resolves to the main repo.
+
+`ml prune` soft-archives stale records to `.mulch/archive/` instead of deleting them; pass
+`--hard` for true deletion. Restore an archived record with `ml restore <id>`. Do not read
+`.mulch/archive/` directly — those records are stale by definition. If you need historical
+context, run `ml search --archived <query>`.
+
+### Before You Finish
+
+1. Discover what to record (shows changed files and suggests domains):
+   ```bash
+   ml learn
+   ```
+2. Store insights from this work session:
+   ```bash
+   ml record <domain> --type <convention|pattern|failure|decision|reference|guide> --description "..."
+   ```
+3. Validate and commit:
+   ```bash
+   ml sync
+   ```
 <!-- mulch:end -->
