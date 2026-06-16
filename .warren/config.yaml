@@ -3,7 +3,7 @@ project: askmynotion
 version: 1
 
 # Force Warren to use your MiniMax model name by default
-defaultRole: claude-code
+defaultRole: pi
 defaultBranch: main
 defaultProvider: anthropic
 defaultModel: MiniMax-M3
