@@ -3,7 +3,7 @@ name: gatewatch
 description: "Gate-integrity auditor: verifies merged history was honest (title/diff truth, red-gate language, ratchet exceptions, mandate protection)"
 runtime: pi
 provider: anthropic
-model: claude-sonnet-4-6
+model: MiniMax-M3
 auto_plan_run: true
 auto_plan_run_agent: pi
 ---

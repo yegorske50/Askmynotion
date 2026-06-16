@@ -3,7 +3,7 @@ name: warden-digest
 description: "Weekly digest driver: re-wakes the standing Audit Warden conversation if idled, then posts a synthesis message asking the overseer to triage accumulated auditor findings"
 runtime: pi
 provider: anthropic
-model: claude-sonnet-4-6
+model: MiniMax-M3
 ---
 
 ## system

@@ -3,7 +3,7 @@ name: tastewatch
 description: "Taste auditor: weekly stratified sample of merged work judged against docs/CONSTITUTION.md; report-only, one digest seed, no dispatch authority"
 runtime: pi
 provider: anthropic
-model: claude-opus-4-8
+model: MiniMax-M3
 ---
 
 ## system

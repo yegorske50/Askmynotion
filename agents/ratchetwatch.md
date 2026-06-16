@@ -3,7 +3,7 @@ name: ratchetwatch
 description: "Ratchet-slack auditor: measures coverage slack, grandfather burn-down, bundle creep; plans mechanical tightenings only"
 runtime: pi
 provider: anthropic
-model: claude-sonnet-4-6
+model: MiniMax-M3
 auto_plan_run: true
 auto_plan_run_agent: pi
 ---
